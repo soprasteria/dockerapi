@@ -1,10 +1,11 @@
 package dockerapi
 
-import (
-	"io"
+import "github.com/fsouza/go-dockerclient"
 
-	"github.com/fsouza/go-dockerclient"
-)
+// Client is the docker client for this API
+type Client struct {
+	Docker *docker.Client
+}
 
 // NewClient creates a new Docker client
 func NewClient(endpoint string) (*Client, error) {
@@ -22,19 +23,4 @@ func NewTLSClient(host, certPEM, keyPEM, caPEM string) (*Client, error) {
 		return nil, err
 	}
 	return &Client{c}, nil
-}
-
-// PullImage pulls an Docker image
-func (c *Client) PullImage(image string) error {
-	return c.PullImageAsync(image, nil)
-}
-
-// PullImageAsync pull the given image and progress can be followed asynchronously, by providing a writer
-func (c *Client) PullImageAsync(image string, progressDetail io.Writer) error {
-	options := docker.PullImageOptions{
-		Repository:   image,
-		OutputStream: progressDetail,
-	}
-	auth := docker.AuthConfiguration{}
-	return c.Docker.PullImage(options, auth)
 }
