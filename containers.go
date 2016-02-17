@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 
-	"gitlab.cdk.corp.sopra/cdk/guts/utils"
+	"github.com/soprasteria/dockerapi/utils"
 
 	"github.com/fsouza/go-dockerclient"
 )
