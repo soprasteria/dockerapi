@@ -130,7 +130,7 @@ func (containers LightContainers) GetIDs() []string {
 
 // Name returns the name of the container
 func (c *Container) Name() (name string) {
-	if c != nil && c.Container != nil {
+	if c.Container != nil {
 		name = c.Container.Name
 		if len(name) > 0 && name[0] == '/' {
 			name = name[1:]
@@ -141,7 +141,7 @@ func (c *Container) Name() (name string) {
 
 // ID returns the id of the container
 func (c *Container) ID() (id string) {
-	if c != nil && c.Container != nil {
+	if c.Container != nil {
 		id = c.Container.ID
 	}
 	return
@@ -154,7 +154,7 @@ func (c *Container) ShortID() string {
 
 // Image returns the image of the container
 func (c *Container) Image() (image string) {
-	if c != nil && c.Container != nil && c.Container.Config != nil {
+	if c.Container != nil && c.Container.Config != nil {
 		image = c.Container.Config.Image
 	}
 	return
