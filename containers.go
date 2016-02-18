@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/soprasteria/dockerapi/utils"
 
@@ -343,27 +344,35 @@ func (c *Container) Exec(cmd []string) (logs []string, err error) {
 		RawTerminal:  false,
 		Success:      success,
 	}
-	idExec, err := c.Client.Docker.CreateExec(createOptions)
+	exec, err := c.Client.Docker.CreateExec(createOptions)
 	if err != nil {
 		return logs, err
 	}
 
 	go func() {
-		if err := c.Client.Docker.StartExec(idExec.ID, execOptions); err != nil {
-			log.Fatal(err)
-			return
+		defer r.Close()
+		if errr := c.Client.Docker.StartExec(exec.ID, execOptions); errr != nil {
+			log.Fatal(errr)
+			err = errr
 		}
-		r.Close()
 	}()
 	<-success
 	close(success)
+	if err != nil {
+		return logs, err
+	}
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		logs = append(logs, scanner.Text())
+	}
 
-	func(reader io.Reader) {
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			logs = append(logs, scanner.Text())
-		}
-	}(r)
+	execInspect, err := c.Client.Docker.InspectExec(exec.ID)
+	if err != nil {
+		return logs, err
+	}
+	if execInspect.ExitCode != 0 {
+		return logs, fmt.Errorf("Command %q failed : %v ", strings.Join(cmd, " "), execInspect.ExitCode)
+	}
 
 	return logs, nil
 }
