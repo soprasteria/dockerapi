@@ -284,24 +284,34 @@ func (c *Container) Stop() error {
 // Remove removes a container,
 // Volumes is a flag indicating whether Docker should remove the volumes associated to the container.
 func (c *Container) Remove(volumes bool) error {
-	id := c.Container.ID
-	if id == "" {
-		return fmt.Errorf("Container %+v does not exist", c)
-	}
 	options := docker.RemoveContainerOptions{
 		ID:            c.Container.ID,
 		Force:         false,
 		RemoveVolumes: volumes,
 	}
-	err := c.Client.Docker.RemoveContainer(options)
-	if err != nil {
-		options.Force = true
-		err = c.Client.Docker.RemoveContainer(options)
-		if err != nil {
-			return fmt.Errorf("Can't remove container of id %v", c.ShortID())
-		}
+	// Graceful remove
+	err := c.Client.Docker.RemoveContainer(options) // By ID
+	if err == nil {
+		return nil
 	}
-	return nil
+	options.ID = c.Name()
+	err = c.Client.Docker.RemoveContainer(options) // By name
+	if err == nil {
+		return nil
+	}
+
+	// Force remove
+	options.Force = true
+	err = c.Client.Docker.RemoveContainer(options) // By ID
+	if err == nil {
+		return nil
+	}
+	err = c.Client.Docker.RemoveContainer(options) // By name
+	if err != nil {
+		return nil
+	}
+
+	return fmt.Errorf("Can't remove container %v (%v)", c.Name(), c.ShortID())
 }
 
 // StopAndRemove stop and remove the container and possibly its volumes
