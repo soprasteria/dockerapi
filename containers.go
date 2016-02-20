@@ -302,10 +302,12 @@ func (c *Container) Remove(volumes bool) error {
 
 	// Force remove
 	options.Force = true
+	options.ID = c.ID()
 	err = c.Client.Docker.RemoveContainer(options) // By ID
 	if err == nil {
 		return nil
 	}
+	options.ID = c.Name()
 	err = c.Client.Docker.RemoveContainer(options) // By name
 	if err != nil {
 		return nil
