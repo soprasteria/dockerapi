@@ -7,6 +7,12 @@ type Client struct {
 	Docker *docker.Client
 }
 
+type TLSClientFromBytesParameters struct {
+	Host                                 string
+	CertPEMBlock, KeyPEMBlock, CaPEMCert []byte
+	InsecureSkipVerify                   bool
+}
+
 // NewClient creates a new Docker client
 func NewClient(endpoint string) (*Client, error) {
 	c, err := docker.NewClient(endpoint)
@@ -28,10 +34,11 @@ func NewTLSClient(host, certPEM, keyPEM, caPEM string) (*Client, error) {
 
 // NewTLSClientFromBytes create a client for a TLS secured Docker engine
 // The key and certificates are passed inline
-func NewTLSClientFromBytes(host string, certPEMBlock, keyPEMBlock, caPEMCert []byte) (*Client, error) {
-	c, err := docker.NewTLSClientFromBytes(host, certPEMBlock, keyPEMBlock, caPEMCert)
+func NewTLSClientFromBytes(params TLSClientFromBytesParameters) (*Client, error) {
+	c, err := docker.NewTLSClientFromBytes(params.Host, params.CertPEMBlock, params.KeyPEMBlock, params.CaPEMCert)
 	if err != nil {
 		return nil, err
 	}
+	c.TLSConfig.InsecureSkipVerify = params.InsecureSkipVerify
 	return &Client{c}, nil
 }
