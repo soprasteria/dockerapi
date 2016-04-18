@@ -97,6 +97,20 @@ func (c *Client) ListRunningContainers() (res LightContainers, err error) {
 	return
 }
 
+// ListContainers list all running and non-running containers on docker engine
+func (c *Client) ListContainers() (res LightContainers, err error) {
+	options := docker.ListContainersOptions{All: true}
+	containers, err := c.Docker.ListContainers(options)
+	if err != nil {
+		return
+	}
+
+	for _, v := range containers {
+		res = append(res, LightContainer{v})
+	}
+	return
+}
+
 // LightContainer is a simple docker container returned by ListContainers
 type LightContainer struct {
 	Container docker.APIContainers
