@@ -29,13 +29,10 @@ type PortBinding struct {
 
 // Parameters list all docker parameters (for example, to limit the docker container : memory, cpu etc.)
 type Parameters struct {
-	Memory            int64
-	MemorySwap        int64
-	MemoryReservation int64
-	KernelMemory      int64
-	PidsLimit         int64
-	CPUShares         int64
-	CPUSet            string
+	Memory     int64
+	MemorySwap int64
+	CPUShares  int64
+	CPUSet     string
 }
 
 // ContainerOptions defines options for container initialisation
@@ -86,22 +83,19 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 	container := &docker.Container{
 		Name: o.Name,
 		Config: &docker.Config{
-			Image:             o.Image,
-			Cmd:               o.Cmd,
-			Env:               o.Env,
-			Hostname:          o.Hostname,
-			Memory:            o.Parameters.Memory,
-			MemorySwap:        o.Parameters.MemorySwap,
-			MemoryReservation: o.Parameters.MemoryReservation,
-			KernelMemory:      o.Parameters.KernelMemory,
-			PidsLimit:         o.Parameters.PidsLimit,
-			CPUShares:         o.Parameters.CPUShares,
-			CPUSet:            o.Parameters.CPUSet,
+			Image:    o.Image,
+			Cmd:      o.Cmd,
+			Env:      o.Env,
+			Hostname: o.Hostname,
 		},
 		HostConfig: &docker.HostConfig{
 			PortBindings: portBindings,
 			Binds:        volumeBindings,
 			Links:        o.Links,
+			Memory:       o.Parameters.Memory,
+			MemorySwap:   o.Parameters.MemorySwap,
+			CPUShares:    o.Parameters.CPUShares,
+			CPUSet:       o.Parameters.CPUSet,
 		},
 	}
 
