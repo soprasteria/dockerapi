@@ -24,6 +24,18 @@ type Container struct {
 type PortBinding struct {
 	ContainerPort string // Port inside the container
 	HostPort      string // port outside the container (on the host)
+	Protocol      string // tcp/udp
+}
+
+// Parameters list all docker parameters (for example, to limit the docker container : memory, cpu etc.)
+type Parameters struct {
+	Memory            int64
+	MemorySwap        int64
+	MemoryReservation int64
+	KernelMemory      int64
+	PidsLimit         int64
+	CPUShares         int64
+	CPUSet            string
 }
 
 // ContainerOptions defines options for container initialisation
@@ -34,6 +46,9 @@ type ContainerOptions struct {
 	Cmd          []string      // command to launch when starting the container
 	Binds        []string      // Volume bindings. Format :  externalpath:internalpath:r(w|o)
 	Links        []string      // Links to use inside the container. Format : externalname:internalname
+	Env          []string      // Environment variables to set for the container. Format : key=value
+	Hostname     string        // Hostname of the docker container
+	Parameters   Parameters    // Parameters list all docker parameters
 }
 
 // NewContainer initializes a new container, ready to be created
@@ -45,21 +60,47 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 		return nil, errors.New("Name is required")
 	}
 
+	// Handle port bindings and default behaviour
 	portBindings := map[docker.Port][]docker.PortBinding{}
 	for _, binding := range o.PortBindings {
-		port := docker.Port(binding.ContainerPort + "/tcp")
+		if binding.Protocol == "" || binding.Protocol != "udp" {
+			// TCP port by default
+			binding.Protocol = "tcp"
+		}
+		port := docker.Port(binding.ContainerPort + "/" + binding.Protocol)
 		portBindings[port] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: binding.HostPort}}
+	}
+
+	// Handle volume bindings and default behaviour
+	volumeBindings := []string{}
+	for _, binding := range o.Binds {
+		volume := strings.Split(binding, ":")
+		if len(volume) == 2 {
+			// external:internal -> external:internal:rw
+			binding = binding + ":rw"
+		}
+
+		volumeBindings = append(volumeBindings, binding)
 	}
 
 	container := &docker.Container{
 		Name: o.Name,
 		Config: &docker.Config{
-			Image: o.Image,
-			Cmd:   o.Cmd,
+			Image:             o.Image,
+			Cmd:               o.Cmd,
+			Env:               o.Env,
+			Hostname:          o.Hostname,
+			Memory:            o.Parameters.Memory,
+			MemorySwap:        o.Parameters.MemorySwap,
+			MemoryReservation: o.Parameters.MemoryReservation,
+			KernelMemory:      o.Parameters.KernelMemory,
+			PidsLimit:         o.Parameters.PidsLimit,
+			CPUShares:         o.Parameters.CPUShares,
+			CPUSet:            o.Parameters.CPUSet,
 		},
 		HostConfig: &docker.HostConfig{
 			PortBindings: portBindings,
-			Binds:        o.Binds,
+			Binds:        volumeBindings,
 			Links:        o.Links,
 		},
 	}
@@ -173,6 +214,14 @@ func (c *Container) Image() (image string) {
 		image = c.Container.Config.Image
 	}
 	return
+}
+
+// IsRunning checks that container is running
+func (c *Container) IsRunning() bool {
+	if c.Container != nil {
+		return c.Container.State.Running
+	}
+	return false
 }
 
 // Rename renames a container's name to another
