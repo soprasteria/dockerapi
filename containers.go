@@ -218,6 +218,15 @@ func (c *Container) IsRunning() bool {
 	return false
 }
 
+// GetEnvs returns the list of environment variables inside the container
+func (c *Container) GetEnvs() []string {
+	if c.Container != nil {
+		return c.Container.Config.Env
+	}
+
+	return []string{}
+}
+
 // Rename renames a container's name to another
 func (c *Container) Rename(newName string) error {
 	if newName == "" {
