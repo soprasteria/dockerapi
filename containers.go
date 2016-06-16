@@ -190,11 +190,11 @@ func (c *Container) Name() (name string) {
 }
 
 // ID returns the id of the container
-func (c *Container) ID() (id string) {
+func (c *Container) ID() string {
 	if c.Container != nil {
-		id = c.Container.ID
+		return c.Container.ID
 	}
-	return
+	return ""
 }
 
 // ShortID returns a short representation of an id of the container
@@ -350,36 +350,47 @@ func (c *Container) Stop() error {
 // Remove removes a container,
 // Volumes is a flag indicating whether Docker should remove the volumes associated to the container.
 func (c *Container) Remove(volumes bool) error {
-	options := docker.RemoveContainerOptions{
-		ID:            c.Container.ID,
-		Force:         false,
-		RemoveVolumes: volumes,
+
+	// Remove the container gracefull, then by force
+	// First to
+
+	superRemove := func(id string, volumes bool) error {
+
+		var err error
+
+		if id != "" {
+			options := docker.RemoveContainerOptions{
+				ID:            id,
+				Force:         false,
+				RemoveVolumes: volumes,
+			}
+			// Graceful removal
+			err = c.Client.Docker.RemoveContainer(options)
+			if err == nil {
+				return nil
+			}
+			// Forced removal
+			options.Force = true
+			err = c.Client.Docker.RemoveContainer(options)
+			if err == nil {
+				return nil
+			}
+		} else {
+			err = errors.New("ID is empty")
+		}
+		return fmt.Errorf("Can't remove container with id %v -> %v)", id, err)
 	}
-	// Graceful remove
-	err := c.Client.Docker.RemoveContainer(options) // By ID
+
+	err := superRemove(c.ID(), volumes)
 	if err == nil {
 		return nil
 	}
-	options.ID = c.Name()
-	err = c.Client.Docker.RemoveContainer(options) // By name
+	err = superRemove(c.Name(), volumes)
 	if err == nil {
 		return nil
 	}
 
-	// Force remove
-	options.Force = true
-	options.ID = c.ID()
-	err = c.Client.Docker.RemoveContainer(options) // By ID
-	if err == nil {
-		return nil
-	}
-	options.ID = c.Name()
-	err = c.Client.Docker.RemoveContainer(options) // By name
-	if err != nil {
-		return nil
-	}
-
-	return fmt.Errorf("Can't remove container %v (%v)", c.Name(), c.ShortID())
+	return fmt.Errorf("Can't remove container %v (%v). Error : %v", c.Name(), c.ShortID(), err)
 }
 
 // StopAndRemove stop and remove the container and possibly its volumes
