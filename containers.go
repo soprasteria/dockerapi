@@ -59,12 +59,14 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 
 	// Handle port bindings and default behaviour
 	portBindings := map[docker.Port][]docker.PortBinding{}
+	exposedPorts := map[docker.Port]struct{}{}
 	for _, binding := range o.PortBindings {
 		if binding.Protocol == "" || binding.Protocol != "udp" {
 			// TCP port by default
 			binding.Protocol = "tcp"
 		}
 		port := docker.Port(binding.ContainerPort + "/" + binding.Protocol)
+		exposedPorts[port] = struct{}{}
 		portBindings[port] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: binding.HostPort}}
 	}
 
@@ -83,10 +85,11 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 	container := &docker.Container{
 		Name: o.Name,
 		Config: &docker.Config{
-			Image:    o.Image,
-			Cmd:      o.Cmd,
-			Env:      o.Env,
-			Hostname: o.Hostname,
+			Image:        o.Image,
+			Cmd:          o.Cmd,
+			Env:          o.Env,
+			Hostname:     o.Hostname,
+			ExposedPorts: exposedPorts,
 		},
 		HostConfig: &docker.HostConfig{
 			PortBindings: portBindings,
