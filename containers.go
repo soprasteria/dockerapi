@@ -355,8 +355,6 @@ func (c *Container) Stop() error {
 func (c *Container) Remove(volumes bool) error {
 
 	// Remove the container gracefull, then by force
-	// First to
-
 	superRemove := func(id string, volumes bool) error {
 
 		var err error
@@ -385,10 +383,6 @@ func (c *Container) Remove(volumes bool) error {
 	}
 
 	err := superRemove(c.ID(), volumes)
-	if err == nil {
-		return nil
-	}
-	err = superRemove(c.Name(), volumes)
 	if err == nil {
 		return nil
 	}
