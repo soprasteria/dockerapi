@@ -14,6 +14,21 @@ import (
 	"github.com/fsouza/go-dockerclient"
 )
 
+// SimpleContainer is an interface for interaction with a container
+// This interface can have multiple implementations, more or less exhaustive.
+type SimpleContainer interface {
+	ID() string
+	ShortID() string
+	Image() string
+	Name() string
+}
+
+// SimpleContainers contains multiple containers
+type SimpleContainers interface {
+	GetIDs() []string
+	GetAll() []SimpleContainer
+}
+
 // Container is a docker container
 type Container struct {
 	Container *docker.Container // fsouza docker client. To use if this wrapper is not able to do what you want
@@ -121,32 +136,26 @@ func (c *Client) InspectContainer(id string) (*Container, error) {
 }
 
 // ListRunningContainers list all running containers on docker engine
-func (c *Client) ListRunningContainers() (res LightContainers, err error) {
-
-	options := docker.ListContainersOptions{}
-	containers, err := c.Docker.ListContainers(options)
-	if err != nil {
-		return
-	}
-
-	for _, v := range containers {
-		res = append(res, LightContainer{v})
-	}
-	return
+func (c *Client) ListRunningContainers() (SimpleContainers, error) {
+	return c.listContainers(docker.ListContainersOptions{})
 }
 
 // ListContainers list all running and non-running containers on docker engine
-func (c *Client) ListContainers() (res LightContainers, err error) {
-	options := docker.ListContainersOptions{All: true}
+func (c *Client) ListContainers() (SimpleContainers, error) {
+	return c.listContainers(docker.ListContainersOptions{All: true})
+}
+
+func (c *Client) listContainers(options docker.ListContainersOptions) (SimpleContainers, error) {
 	containers, err := c.Docker.ListContainers(options)
 	if err != nil {
-		return
+		return LightContainers{}, err
 	}
 
+	res := []LightContainer{}
 	for _, v := range containers {
 		res = append(res, LightContainer{v})
 	}
-	return
+	return LightContainers{res}, err
 }
 
 // LightContainer is a simple docker container returned by ListContainers
@@ -169,16 +178,42 @@ func (c LightContainer) Image() string {
 	return c.Container.Image
 }
 
+// Name returns the name of the container
+func (c LightContainer) Name() (name string) {
+
+	names := c.Container.Names
+	if len(names) > 0 && names[0] == "/" {
+		name = name[1:]
+	}
+	return
+}
+
+// IsRunning checks wether the container is running
+func (c *LightContainer) IsRunning() bool {
+	return c.Container.State == "running"
+}
+
 // LightContainers is a slice of LightContainer
-type LightContainers []LightContainer
+type LightContainers struct {
+	containers []LightContainer
+}
 
 //GetIDs returns a slice of ids from a slice of light containers
 func (containers LightContainers) GetIDs() []string {
 	result := []string{}
-	for _, c := range containers {
+	for _, c := range containers.containers {
 		result = append(result, c.ID())
 	}
 	return result
+}
+
+// GetAll all returns all containers as simple containers
+func (containers LightContainers) GetAll() []SimpleContainer {
+	simpleContainers := []SimpleContainer{}
+	for _, r := range containers.containers {
+		simpleContainers = append(simpleContainers, r)
+	}
+	return simpleContainers
 }
 
 // Name returns the name of the container
