@@ -193,7 +193,11 @@ func (c LightContainer) Name() (name string) {
 
 // IsRunning checks wether the container is running
 func (c LightContainer) IsRunning() bool {
-	return c.Container.State == "running"
+	container, err := c.Client.InspectContainer(c.ID())
+	if err != nil {
+		return false
+	}
+	return container.IsRunning()
 }
 
 // ExecSh executes shell commands
@@ -203,7 +207,7 @@ func (c LightContainer) ExecSh(cmd []string) ([]string, error) {
 		return []string{}, err
 	}
 
-	return exec(richContainer, c.Client, cmd)
+	return richContainer.ExecSh(cmd)
 }
 
 // LightContainers is a slice of LightContainer
