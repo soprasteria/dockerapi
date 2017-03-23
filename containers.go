@@ -21,6 +21,7 @@ type SimpleContainer interface {
 	ShortID() string
 	Image() string
 	Name() string
+	ExecSh(cmd []string) ([]string, error)
 }
 
 // SimpleContainers contains multiple containers
@@ -153,7 +154,7 @@ func (c *Client) listContainers(options docker.ListContainersOptions) (SimpleCon
 
 	res := []LightContainer{}
 	for _, v := range containers {
-		res = append(res, LightContainer{v})
+		res = append(res, LightContainer{v, c})
 	}
 	return LightContainers{res}, err
 }
@@ -161,6 +162,7 @@ func (c *Client) listContainers(options docker.ListContainersOptions) (SimpleCon
 // LightContainer is a simple docker container returned by ListContainers
 type LightContainer struct {
 	Container docker.APIContainers
+	Client    *Client
 }
 
 // ID returns the id of the light container
@@ -189,8 +191,18 @@ func (c LightContainer) Name() (name string) {
 }
 
 // IsRunning checks wether the container is running
-func (c *LightContainer) IsRunning() bool {
+func (c LightContainer) IsRunning() bool {
 	return c.Container.State == "running"
+}
+
+// ExecSh executes shell commands
+func (c LightContainer) ExecSh(cmd []string) ([]string, error) {
+	richContainer, err := c.Client.InspectContainer(c.ID())
+	if err != nil {
+		return []string{}, err
+	}
+
+	return exec(richContainer, c.Client, cmd)
 }
 
 // LightContainers is a slice of LightContainer
@@ -435,14 +447,7 @@ func (c *Container) StopAndRemove(volumes bool) error {
 	return c.Remove(volumes)
 }
 
-// ExecSh executes a command in sh shell on a container
-func (c *Container) ExecSh(cmd []string) (logs []string, err error) {
-	bash := []string{"/bin/sh", "-c"}
-	return c.Exec(append(bash, cmd...))
-}
-
-// Exec executes a command on a container
-func (c *Container) Exec(cmd []string) (logs []string, err error) {
+func exec(c SimpleContainer, client *Client, cmd []string) (logs []string, err error) {
 	if c.ID() == "" {
 		return logs, fmt.Errorf("Container %+v does not exist", c)
 	}
@@ -465,14 +470,14 @@ func (c *Container) Exec(cmd []string) (logs []string, err error) {
 		RawTerminal:  false,
 		Success:      success,
 	}
-	exec, err := c.Client.Docker.CreateExec(createOptions)
+	exec, err := client.Docker.CreateExec(createOptions)
 	if err != nil {
 		return logs, err
 	}
 
 	go func() {
 		defer r.Close()
-		if errr := c.Client.Docker.StartExec(exec.ID, execOptions); errr != nil {
+		if errr := client.Docker.StartExec(exec.ID, execOptions); errr != nil {
 			log.Fatal(errr)
 			err = errr
 		}
@@ -487,7 +492,7 @@ func (c *Container) Exec(cmd []string) (logs []string, err error) {
 		logs = append(logs, scanner.Text())
 	}
 
-	execInspect, err := c.Client.Docker.InspectExec(exec.ID)
+	execInspect, err := client.Docker.InspectExec(exec.ID)
 	if err != nil {
 		return logs, err
 	}
@@ -496,6 +501,17 @@ func (c *Container) Exec(cmd []string) (logs []string, err error) {
 	}
 
 	return logs, nil
+}
+
+// ExecSh executes a command in sh shell on a container
+func (c *Container) ExecSh(cmd []string) (logs []string, err error) {
+	shell := []string{"/bin/sh", "-c"}
+	return c.Exec(append(shell, cmd...))
+}
+
+// Exec executes a command on a container
+func (c *Container) Exec(cmd []string) (logs []string, err error) {
+	return exec(c, c.Client, cmd)
 }
 
 // LogsOptions is used to get logs from container
