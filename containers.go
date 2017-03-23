@@ -22,6 +22,7 @@ type SimpleContainer interface {
 	Image() string
 	Name() string
 	ExecSh(cmd []string) ([]string, error)
+	IsRunning() bool
 }
 
 // SimpleContainers contains multiple containers
