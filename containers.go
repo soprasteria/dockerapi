@@ -182,13 +182,13 @@ func (c LightContainer) Image() string {
 }
 
 // Name returns the name of the container
-func (c LightContainer) Name() (name string) {
+func (c LightContainer) Name() string {
 
 	names := c.Container.Names
-	if len(names) > 0 && names[0] == "/" {
-		name = name[1:]
+	if len(names) > 0 && names[0][:1] == "/" {
+		return names[0][1:]
 	}
-	return
+	return ""
 }
 
 // IsRunning checks wether the container is running
