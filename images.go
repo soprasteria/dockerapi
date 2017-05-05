@@ -25,3 +25,9 @@ func (c *Client) PullImageAsync(image string, progressDetail io.Writer) error {
 func (c *Client) RemoveImage(image string) error {
 	return c.Docker.RemoveImage(image)
 }
+
+// ImageExists checks if an image exists on the server
+func (c *Client) ImageExists(image string) bool {
+	_, err := c.Docker.InspectImage(image)
+	return err == nil
+}

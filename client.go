@@ -7,6 +7,7 @@ type Client struct {
 	Docker *docker.Client
 }
 
+// TLSClientFromBytesParameters is a struct containing the TLS configuration
 type TLSClientFromBytesParameters struct {
 	Host                                 string
 	CertPEMBlock, KeyPEMBlock, CaPEMCert []byte

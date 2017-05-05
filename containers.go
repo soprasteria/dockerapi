@@ -365,12 +365,18 @@ func (c *Container) Start() error {
 
 // Run runs the container, aka pull image, create, start
 func (c *Container) Run() error {
+	var err error
 
-	log.Printf("Pulling %+v image\n", c.Image())
-	err := c.Client.PullImage(c.Image())
-	if err != nil {
-		log.Println(err)
-		return fmt.Errorf("Unable to donwload %v image", c.Image())
+	image := c.Image()
+	if !c.Client.ImageExists(image) {
+		log.Printf("Pulling %+v image\n", image)
+		err = c.Client.PullImage(image)
+		if err != nil {
+			log.Println(err)
+			return fmt.Errorf("Unable to donwload %v image", image)
+		}
+	} else {
+		log.Printf("Image %+v already present\n", image)
 	}
 
 	log.Printf("Creating container %+v\n", c.Name())
