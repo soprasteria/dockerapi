@@ -364,13 +364,20 @@ func (c *Container) Start() error {
 }
 
 // Run runs the container, aka pull image, create, start
-func (c *Container) Run() error {
+// If forcePull is true then the image will be pulled from the repository no matter if the image already exists on the machine or not
+func (c *Container) Run(forcePull bool) error {
+	var err error
 
-	log.Printf("Pulling %+v image\n", c.Image())
-	err := c.Client.PullImage(c.Image())
-	if err != nil {
-		log.Println(err)
-		return fmt.Errorf("Unable to donwload %v image", c.Image())
+	image := c.Image()
+	if forcePull || !c.Client.ImageExists(image) {
+		log.Printf("Pulling %+v image\n", image)
+		err = c.Client.PullImage(image)
+		if err != nil {
+			log.Println(err)
+			return fmt.Errorf("Unable to donwload %v image", image)
+		}
+	} else {
+		log.Printf("Image %+v already present\n", image)
 	}
 
 	log.Printf("Creating container %+v\n", c.Name())
@@ -551,12 +558,13 @@ type PoolContainer []*Container
 
 // RunAll runs all containers from the pool
 // Returns error if something bad happened but no error exits
-func (pool PoolContainer) RunAll() (err error) {
+// If forcePull is true then images will be pulled from the repository no matter if the image already exists on the machine or not
+func (pool PoolContainer) RunAll(forcePull bool) (err error) {
 	sem := make(chan error, len(pool))
 	// Concurrent Run
 	for _, v := range pool {
 		go func(v *Container) {
-			sem <- v.Run()
+			sem <- v.Run(forcePull)
 		}(v)
 	}
 	// Waiting for return
