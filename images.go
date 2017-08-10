@@ -32,13 +32,11 @@ func (c *Client) ImageExists(image string) bool {
 }
 
 func getAuthConfigurationFromDockerCfg() docker.AuthConfiguration {
-	auth := docker.Authentication{}
-	auths := docker.NewAuthConfigurationsFromDockerCfg()
-	if len(auths) > 0 {
-		for _, value := range auths {
-			auth = value
-			break // can't presume which docker config to use, so take the first one
-		}
+	auth := docker.AuthConfiguration{}
+	auths, _ := docker.NewAuthConfigurationsFromDockerCfg()
+	for _, value := range auths.Configs {
+		auth = value
+		break // can't presume which docker config to use, so take the first one
 	}
 	return auth
 }
