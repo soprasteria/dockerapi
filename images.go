@@ -17,8 +17,7 @@ func (c *Client) PullImageAsync(image string, progressDetail io.Writer) error {
 		Repository:   image,
 		OutputStream: progressDetail,
 	}
-	auth := docker.AuthConfiguration{}
-	return c.Docker.PullImage(options, auth)
+	return c.Docker.PullImage(options, getAuthConfigurationFromDockerCfg())
 }
 
 // RemoveImage safely removes the image
@@ -30,4 +29,16 @@ func (c *Client) RemoveImage(image string) error {
 func (c *Client) ImageExists(image string) bool {
 	_, err := c.Docker.InspectImage(image)
 	return err == nil
+}
+
+func getAuthConfigurationFromDockerCfg() docker.AuthConfiguration {
+	auth := docker.Authentication{}
+	auths := docker.NewAuthConfigurationsFromDockerCfg()
+	if len(auths) > 0 {
+		for _, value := range auths {
+			auth = value
+			break // can't presume which docker config to use, so take the first one
+		}
+	}
+	return auth
 }
