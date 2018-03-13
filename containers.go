@@ -63,6 +63,7 @@ type ContainerOptions struct {
 	Links        []string          // Links to use inside the container. Format : externalname:internalname
 	Env          []string          // Environment variables to set for the container. Format : key=value
 	Hostname     string            // Hostname of the docker container
+	ExtraHosts   []string          // ExtraHosts of the container, allow to add entries to /etc/hosts. Format: host:ip
 	Parameters   Parameters        // Parameters list all docker parameters
 	Labels       map[string]string // Labels inside the container
 }
@@ -123,6 +124,7 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 			MemorySwap:   o.Parameters.MemorySwap,
 			CPUShares:    o.Parameters.CPUShares,
 			CPUSet:       o.Parameters.CPUSet,
+			ExtraHosts:   o.ExtraHosts,
 		},
 	}
 
