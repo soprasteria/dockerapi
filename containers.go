@@ -39,6 +39,7 @@ type Container struct {
 
 // PortBinding binds the port from host and container from host
 type PortBinding struct {
+	Host          string // IP to bind port to
 	ContainerPort string // Port inside the container
 	HostPort      string // port outside the container (on the host)
 	Protocol      string // tcp/udp
@@ -54,16 +55,18 @@ type Parameters struct {
 
 // ContainerOptions defines options for container initialisation
 type ContainerOptions struct {
-	Image        string        // Name of the image in the registry (ex : redis:latest)
-	Name         string        // Name of the container
-	PortBindings []PortBinding // List of ports to bind
-	Cmd          []string      // command to launch when starting the container
-	Binds        []string      // Volume bindings. Format :  externalpath:internalpath:r(w|o)
-	Links        []string      // Links to use inside the container. Format : externalname:internalname
-	Env          []string      // Environment variables to set for the container. Format : key=value
-	Hostname     string        // Hostname of the docker container
-	Parameters   Parameters    // Parameters list all docker parameters
-	NetworkMode  string        // NetworkMode which used to start the docker container
+	Image        string            // Name of the image in the registry (ex : redis:latest)
+	Name         string            // Name of the container
+	PortBindings []PortBinding     // List of ports to bind
+	Cmd          []string          // command to launch when starting the container
+	Binds        []string          // Volume bindings. Format :  externalpath:internalpath:r(w|o)
+	Links        []string          // Links to use inside the container. Format : externalname:internalname
+	Env          []string          // Environment variables to set for the container. Format : key=value
+	Hostname     string            // Hostname of the docker container
+	ExtraHosts   []string          // ExtraHosts of the container, allow to add entries to /etc/hosts. Format: host:ip
+	Parameters   Parameters        // Parameters list all docker parameters
+	Labels       map[string]string // Labels inside the container
+  NetworkMode  string        // NetworkMode which used to start the docker container
 }
 
 // NewContainer initializes a new container, ready to be created
@@ -85,7 +88,11 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 		}
 		port := docker.Port(binding.ContainerPort + "/" + binding.Protocol)
 		exposedPorts[port] = struct{}{}
-		portBindings[port] = []docker.PortBinding{{HostIP: "0.0.0.0", HostPort: binding.HostPort}}
+		hostIP := "0.0.0.0"
+		if binding.Host != "" {
+			hostIP = binding.Host
+		}
+		portBindings[port] = []docker.PortBinding{{HostIP: hostIP, HostPort: binding.HostPort}}
 	}
 
 	// Handle volume bindings and default behaviour
@@ -108,6 +115,7 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 			Env:          o.Env,
 			Hostname:     o.Hostname,
 			ExposedPorts: exposedPorts,
+			Labels:       o.Labels,
 		},
 		HostConfig: &docker.HostConfig{
 			PortBindings: portBindings,
@@ -117,6 +125,7 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 			MemorySwap:   o.Parameters.MemorySwap,
 			CPUShares:    o.Parameters.CPUShares,
 			CPUSet:       o.Parameters.CPUSet,
+			ExtraHosts:   o.ExtraHosts,
 		},
 	}
 
