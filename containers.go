@@ -63,6 +63,7 @@ type ContainerOptions struct {
 	Env          []string      // Environment variables to set for the container. Format : key=value
 	Hostname     string        // Hostname of the docker container
 	Parameters   Parameters    // Parameters list all docker parameters
+	NetworkMode  string        // NetworkMode which used to start the docker container
 }
 
 // NewContainer initializes a new container, ready to be created
