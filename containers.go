@@ -66,6 +66,7 @@ type ContainerOptions struct {
 	ExtraHosts   []string          // ExtraHosts of the container, allow to add entries to /etc/hosts. Format: host:ip
 	Parameters   Parameters        // Parameters list all docker parameters
 	Labels       map[string]string // Labels inside the container
+	NetworkMode  string            // NetworkMode which used to start the docker container
 }
 
 // NewContainer initializes a new container, ready to be created
