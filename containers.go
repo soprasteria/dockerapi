@@ -126,6 +126,7 @@ func (c *Client) NewContainer(o ContainerOptions) (*Container, error) {
 			CPUShares:    o.Parameters.CPUShares,
 			CPUSet:       o.Parameters.CPUSet,
 			ExtraHosts:   o.ExtraHosts,
+			NetworkMode:  o.NetworkMode,
 		},
 	}
 
