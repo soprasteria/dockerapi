@@ -11,7 +11,7 @@ import (
 
 	"github.com/soprasteria/dockerapi/utils"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 // SimpleContainer is an interface for interaction with a container
@@ -356,6 +356,25 @@ func (c *Container) Create() error {
 		Name:       c.Container.Name,
 		Config:     c.Container.Config,
 		HostConfig: c.Container.HostConfig,
+	})
+	if err != nil {
+		return err
+	}
+	c.Container = cont
+	return err
+}
+
+// CreateWithAliases creates the container with network aliases
+func (c *Container) CreateWithAliases(aliases []string) error {
+	network := c.Container.HostConfig.NetworkMode
+	networkConfig := docker.NetworkingConfig{}
+	networkConfig.EndpointsConfig[network].Aliases = aliases
+
+	cont, err := c.Client.Docker.CreateContainer(docker.CreateContainerOptions{
+		Name:             c.Container.Name,
+		Config:           c.Container.Config,
+		HostConfig:       c.Container.HostConfig,
+		NetworkingConfig: &networkConfig,
 	})
 	if err != nil {
 		return err
