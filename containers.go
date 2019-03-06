@@ -370,8 +370,10 @@ func (c *Container) CreateWithAliases(aliases []string) error {
 	if utils.ContainsString([]string{"host", "bridge", "none"}, network) {
 		return errors.New("Creating container with aliases is not allowed on networks 'bridge', 'host' or 'none'")
 	}
-	networkConfig := docker.NetworkingConfig{}
-	networkConfig.EndpointsConfig[network].Aliases = aliases
+	networkConfig := docker.NetworkingConfig{EndpointsConfig: make(map[string]*docker.EndpointConfig)}
+	networkConfig.EndpointsConfig[network] = &docker.EndpointConfig{
+		Aliases: aliases,
+	}
 
 	cont, err := c.Client.Docker.CreateContainer(docker.CreateContainerOptions{
 		Name:             c.Container.Name,
